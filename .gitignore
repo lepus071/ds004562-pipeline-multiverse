@@ -1,0 +1,5 @@
+# nothing generated or fetched belongs in version control
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db

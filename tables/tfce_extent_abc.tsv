@@ -1,0 +1,13 @@
+arm	branch	n_subjects	n_voxels_corrp_gt_095	percent_of_mask	peak_x	peak_y	peak_z	peak_t
+A	movement direction	22	70200	44.387	28	-8	36	7.179197
+B	movement direction	22	73224	46.299	26	-56	-32	7.598867
+C	movement direction	22	69400	43.881	-24	-62	-24	7.694288
+A	preparation rotation/mirror	22	1180	0.746	-14	-94	12	10.394967
+B	preparation rotation/mirror	22	130	0.082	-10	-100	8	6.345703
+C	preparation rotation/mirror	22	30	0.019	-10	-100	8	7.133142
+A	task context −90/+90	22	40114	25.364	-2	16	0	5.609778
+B	task context −90/+90	22	939	0.594	-24	-12	46	6.521803
+C	task context −90/+90	22	431	0.273	-24	-12	44	6.422287
+A	visual direction	22	12219	7.726	14	-86	16	19.465796
+B	visual direction	22	9342	5.907	18	-90	0	15.649068
+C	visual direction	22	10266	6.491	14	-92	6	14.469759
