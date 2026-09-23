@@ -3,7 +3,11 @@
 Supporting material for a poster at the 2026 Taiwan Open Brain Science Workshop.
 
 We re-analysed one open fMRI dataset through several independent pipelines and asked which
-conclusions move when the pipeline moves. This repository holds the numbers behind the poster.
+conclusions move when the pipeline moves.
+
+**[Read the results as an interactive page &rarr;](https://lepus071.github.io/ds004562-pipeline-multiverse/)**
+
+This repository holds the tables behind that page and behind the poster.
 
 **Dataset.** OpenNeuro [ds004562](https://openneuro.org/datasets/ds004562), from
 Song, Y., Shin, W., Kim, P., & Jeong, J. (2023). *Neural representations for multi-context
