@@ -1,0 +1,522 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Decoding the brain, or decoding the pipeline?</title>
+<meta name="description" content="How far a whole-brain fMRI decoding map moves when the analysis pipeline changes: agreement, per participant and after thresholding.">
+<style>
+  :root {
+    color-scheme: light;
+    --surface-0: #ffffff;
+    --surface-1: #fcfcfb;
+    --surface-2: #f2f1ee;
+    --rule: #dededa;
+    --text-primary: #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted: #77756f;
+    --series-1: #2a78d6;
+    --series-2: #eb6834;
+    --series-3: #1baf7a;
+    --seq-100: #cde2fb; --seq-250: #86b6ef; --seq-400: #3987e5;
+    --seq-500: #256abf; --seq-600: #184f95; --seq-700: #0d366b;
+    --accent: #2a78d6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --surface-0: #121211;
+      --surface-1: #1a1a19;
+      --surface-2: #232322;
+      --rule: #3a3a37;
+      --text-primary: #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted: #96958c;
+      --series-1: #3987e5;
+      --series-2: #d95926;
+      --series-3: #199e70;
+      --accent: #3987e5;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface-0: #121211;
+    --surface-1: #1a1a19;
+    --surface-2: #232322;
+    --rule: #3a3a37;
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted: #96958c;
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --accent: #3987e5;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--surface-0);
+    color: var(--text-primary);
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 16px 80px; }
+  header { border-bottom: 1px solid var(--rule); margin-bottom: 32px; }
+  .headbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 20px 0 0; }
+  .eyebrow { color: var(--text-muted); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
+  h1 { font-size: clamp(28px, 5vw, 44px); line-height: 1.12; margin: 8px 0 12px; letter-spacing: -.02em; }
+  .lede { font-size: clamp(17px, 2.2vw, 20px); color: var(--text-secondary); max-width: 62ch; margin: 0 0 24px; }
+  h2 { font-size: clamp(21px, 3vw, 27px); margin: 56px 0 6px; letter-spacing: -.01em; }
+  h3 { font-size: 17px; margin: 28px 0 4px; }
+  p { max-width: 68ch; color: var(--text-secondary); }
+  p strong, li strong { color: var(--text-primary); }
+  a { color: var(--accent); }
+  code { background: var(--surface-2); padding: 1px 5px; border-radius: 4px; font-size: .92em; }
+
+  button.theme {
+    background: var(--surface-2); color: var(--text-secondary); border: 1px solid var(--rule);
+    border-radius: 999px; padding: 6px 14px; font-size: 13px; cursor: pointer;
+  }
+  button.theme:hover { color: var(--text-primary); }
+
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin: 28px 0 8px; }
+  .tile { background: var(--surface-1); border: 1px solid var(--rule); border-radius: 10px; padding: 16px 18px; }
+  .tile .big { font-size: 34px; font-weight: 650; letter-spacing: -.02em; line-height: 1.1; }
+  .tile .cap { color: var(--text-secondary); font-size: 14px; margin-top: 6px; }
+
+  figure { margin: 20px 0 0; }
+  figcaption { color: var(--text-muted); font-size: 14px; margin-top: 10px; max-width: 68ch; }
+  .chart { background: var(--surface-1); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 12px 8px; overflow-x: auto; }
+  svg { display: block; width: 100%; height: auto; font: 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  .grid line { stroke: var(--rule); }
+  .axis text { fill: var(--text-muted); }
+  .axis-title { fill: var(--text-secondary); font-size: 12px; }
+  .mark-label { fill: var(--text-secondary); font-size: 11px; }
+  .cell-label { font-size: 11px; font-weight: 600; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; margin: 4px 0 10px 6px; color: var(--text-secondary); font-size: 13px; }
+  .swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; margin-right: 6px; vertical-align: -1px; }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 16px 0 4px; }
+  .controls label { color: var(--text-secondary); font-size: 14px; }
+  select { background: var(--surface-1); color: var(--text-primary); border: 1px solid var(--rule); border-radius: 7px; padding: 6px 10px; font: inherit; font-size: 14px; }
+
+  .tip {
+    position: fixed; pointer-events: none; z-index: 10; opacity: 0; transition: opacity .08s;
+    background: var(--surface-0); color: var(--text-primary); border: 1px solid var(--rule);
+    border-radius: 8px; padding: 8px 10px; font-size: 13px; line-height: 1.45;
+    box-shadow: 0 6px 20px rgba(0,0,0,.18); max-width: 280px;
+  }
+  .tip b { font-weight: 650; }
+
+  details { margin-top: 14px; border-top: 1px solid var(--rule); padding-top: 10px; }
+  summary { cursor: pointer; color: var(--text-secondary); font-size: 14px; }
+  table { border-collapse: collapse; margin-top: 12px; font-size: 14px; width: 100%; }
+  th, td { text-align: right; padding: 5px 10px; border-bottom: 1px solid var(--rule); }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--text-muted); font-weight: 600; }
+
+  .note { background: var(--surface-1); border: 1px solid var(--rule); border-left: 3px solid var(--series-2);
+          border-radius: 8px; padding: 14px 16px; margin-top: 22px; }
+  .note p { margin: 0; }
+  footer { margin-top: 64px; padding-top: 20px; border-top: 1px solid var(--rule); color: var(--text-muted); font-size: 14px; }
+  footer a { color: var(--accent); }
+  @media (max-width: 640px) { .tile .big { font-size: 28px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="headbar">
+    <span class="eyebrow">OpenNeuro ds004562 &middot; four-pipeline re-analysis</span>
+    <button class="theme" id="themeBtn" type="button">Dark</button>
+  </div>
+  <h1>Decoding the brain, or decoding the pipeline?</h1>
+  <p class="lede">One dataset, several analysis pipelines, one frozen mask. How far does a
+  whole-brain decoding map move when the pipeline moves &mdash; and does the published verdict
+  survive?</p>
+</header>
+
+<section>
+  <div class="tiles">
+    <div class="tile">
+      <div class="big" id="tileBC">&nbsp;</div>
+      <div class="cap">agreement when only the <strong>downstream software</strong> differs (B&ndash;C)</div>
+    </div>
+    <div class="tile">
+      <div class="big" id="tileAB">&nbsp;</div>
+      <div class="cap">when only <strong>preprocessing</strong> differs (A&ndash;B)</div>
+    </div>
+    <div class="tile">
+      <div class="big" id="tileExtent">&nbsp;</div>
+      <div class="cap">significant extent for task context, <strong>A against B</strong> &mdash; same design, different preprocessing</div>
+    </div>
+  </div>
+  <p>Agreement is Spearman rho between two group accuracy maps, voxel by voxel, inside one frozen
+  mask of 158,156 voxels, unthresholded. The three pipelines implement the same decoding design;
+  they differ only in the software that produced the maps.</p>
+</section>
+
+<section>
+  <h2>Every branch tells the same story</h2>
+  <p>Eleven analysis branches, three pipeline pairs. Pipelines that share preprocessing agree
+  most; swapping preprocessing costs about a quarter of a rho; changing both costs most. The
+  ordering never reverses.</p>
+  <figure>
+    <div class="chart"><svg id="matrix" role="img" aria-label="Agreement between pipeline pairs across eleven analysis branches"></svg></div>
+    <figcaption>Darker is closer agreement. Hover a cell for the pair, the branch and the cohort size.</figcaption>
+  </figure>
+  <details>
+    <summary>Table view</summary>
+    <div id="matrixTable"></div>
+  </details>
+</section>
+
+<section>
+  <h2>A group map flatters every comparison</h2>
+  <p>The same correlation computed inside each participant and then averaged is
+  <strong>.13 to .19 lower</strong> than the correlation between group maps. Averaging first
+  removes the noise that a single participant's map actually carries.</p>
+  <div class="controls">
+    <label for="branchPick">Branch</label>
+    <select id="branchPick"></select>
+  </div>
+  <figure>
+    <div class="chart"><svg id="strip" role="img" aria-label="Per-participant agreement for each pipeline pair, with the group value marked"></svg></div>
+    <figcaption>Each dot is one participant. The vertical rule is the group-map value for that
+    pair &mdash; consistently to the right of the participants it is built from.</figcaption>
+  </figure>
+  <details>
+    <summary>Table view</summary>
+    <div id="summaryTable"></div>
+  </details>
+</section>
+
+<section>
+  <h2>Thresholded conclusions are the fragile part</h2>
+  <p>The maps above agree closely. Once a significance threshold is applied, the same three
+  pipelines can differ by more than a hundredfold in how much of the brain they call
+  significant &mdash; with nothing but preprocessing between two of them.</p>
+  <figure>
+    <div class="chart"><svg id="extent" role="img" aria-label="Percentage of the mask reaching corrected significance, per pipeline and branch"></svg></div>
+    <figcaption>TFCE, 5,000 permutations, one-sample t across participants, the same mask for
+    every pipeline. Log scale &mdash; note how far apart the task-context bars sit.</figcaption>
+  </figure>
+  <details>
+    <summary>Table view</summary>
+    <div id="extentTable"></div>
+  </details>
+</section>
+
+<section>
+  <h2>What this means</h2>
+  <p><strong>Preprocessing is the tool that matters.</strong> Swapping the downstream software
+  barely moves the map; swapping preprocessing moves it about four times as far, and can change
+  whether an effect survives correction at all.</p>
+  <p><strong>Report the unthresholded map.</strong> Two pipelines can agree at .67 voxel for
+  voxel and still disagree forty-fold about where the effect is significant. The threshold, not
+  the pattern, is what diverges.</p>
+  <p><strong>Group-level agreement is an optimistic number.</strong> If a comparison matters,
+  compute it within participants as well.</p>
+
+  <div class="note">
+    <p><strong>A fourth pipeline is missing from this page.</strong> A second laboratory analysed
+    the same dataset independently, with a different cross-validation scheme and a different
+    label construction as well as different tools. Their maps and the agreement numbers that
+    involve them are withheld until they agree to publication.</p>
+  </div>
+</section>
+
+<section>
+  <h2>Method, in brief</h2>
+  <table>
+    <tr><th>Pipeline</th><th style="text-align:left">What changes</th><th style="text-align:left">Toolchain</th></tr>
+    <tr><td>A</td><td style="text-align:left">the original authors' own toolchain</td><td style="text-align:left">SPM12 / CONN / ART, SPM GLM, The Decoding Toolbox</td></tr>
+    <tr><td>B</td><td style="text-align:left">preprocessing swapped</td><td style="text-align:left">fMRIPrep / FastSurfer, SPM GLM, TDT</td></tr>
+    <tr><td>C</td><td style="text-align:left">downstream software swapped as well</td><td style="text-align:left">fMRIPrep, Nilearn GLM, scikit-learn linear SVC</td></tr>
+  </table>
+  <p style="margin-top:18px">All three implement the original decoding design: searchlight of 9 mm
+  radius, linear SVM, train in one context and test in another, whole blocks held out. Agreement
+  uses ranks rather than raw values, so the pipelines' different accuracy scales cannot drive it.
+  n = 22, except where a branch needs the cohort shared with the fourth pipeline.</p>
+</section>
+
+<footer>
+  <p>Data and tables:
+    <a href="https://github.com/lepus071/ds004562-pipeline-multiverse">github.com/lepus071/ds004562-pipeline-multiverse</a><br>
+  Original study: Song, Y., Shin, W., Kim, P., &amp; Jeong, J. (2023).
+    <a href="https://doi.org/10.3389/fnhum.2023.1221944">Frontiers in Human Neuroscience, 17, 1221944</a>.
+    Dataset: <a href="https://openneuro.org/datasets/ds004562">OpenNeuro ds004562</a>.<br>
+  Ching-Yi Li and Erik Chih-hung Chang, Institute of Cognitive Neuroscience, National Central
+  University. Workshop material, not a publication.</p>
+</footer>
+</div>
+
+<div class="tip" id="tip" role="status" aria-live="polite"></div>
+
+<script>
+const DATA = {"matrix": {"branches": ["1  Visual direction", "2  Movement direction", "3  Task context −90/+90", "4  Context rotation vs mirror", "5  Preparation −90/+90", "6  Preparation rot vs mirror", "7  Four-direction, +90", "8  Four-direction, −90", "9  Four-direction, mirror", "10  Commonality input, rotations", "11  Commonality input, rot/mirror"], "cohort": [21, 19, 21, 22, 22, 21, 22, 22, 22, 22, 22], "pairs": ["A–B", "A–C", "B–C"], "rho": [[0.784, 0.751, 0.922], [0.669, 0.65, 0.862], [0.671, 0.637, 0.929], [0.782, 0.729, 0.938], [0.678, 0.663, 0.942], [0.667, 0.64, 0.93], [0.73, 0.711, 0.937], [0.737, 0.72, 0.932], [0.696, 0.681, 0.924], [0.897, 0.875, 0.981], [0.915, 0.899, 0.984]]}, "perSubject": [{"branch": "visual", "pair": "A–B", "subject": "sub-01", "rho": 0.636}, {"branch": "visual", "pair": "A–B", "subject": "sub-02", "rho": 0.7437}, {"branch": "visual", "pair": "A–B", "subject": "sub-03", "rho": 0.6973}, {"branch": "visual", "pair": "A–B", "subject": "sub-04", "rho": 0.6316}, {"branch": "visual", "pair": "A–B", "subject": "sub-05", "rho": 0.7685}, {"branch": "visual", "pair": "A–B", "subject": "sub-06", "rho": 0.6505}, {"branch": "visual", "pair": "A–B", "subject": "sub-07", "rho": 0.7113}, {"branch": "visual", "pair": "A–B", "subject": "sub-08", "rho": 0.6903}, {"branch": "visual", "pair": "A–B", "subject": "sub-09", "rho": 0.7469}, {"branch": "visual", "pair": "A–B", "subject": "sub-10", "rho": 0.5879}, {"branch": "visual", "pair": "A–B", "subject": "sub-11", "rho": 0.5419}, {"branch": "visual", "pair": "A–B", "subject": "sub-12", "rho": 0.3695}, {"branch": "visual", "pair": "A–B", "subject": "sub-13", "rho": 0.7117}, {"branch": "visual", "pair": "A–B", "subject": "sub-14", "rho": 0.4318}, {"branch": "visual", "pair": "A–B", "subject": "sub-15", "rho": 0.4704}, {"branch": "visual", "pair": "A–B", "subject": "sub-17", "rho": 0.6243}, {"branch": "visual", "pair": "A–B", "subject": "sub-18", "rho": 0.5222}, {"branch": "visual", "pair": "A–B", "subject": "sub-19", "rho": 0.7047}, {"branch": "visual", "pair": "A–B", "subject": "sub-20", "rho": 0.7032}, {"branch": "visual", "pair": "A–B", "subject": "sub-22", "rho": 0.7081}, {"branch": "visual", "pair": "A–B", "subject": "sub-23", "rho": 0.6528}, {"branch": "visual", "pair": "A–C", "subject": "sub-01", "rho": 0.5713}, {"branch": "visual", "pair": "A–C", "subject": "sub-02", "rho": 0.6898}, {"branch": "visual", "pair": "A–C", "subject": "sub-03", "rho": 0.626}, {"branch": "visual", "pair": "A–C", "subject": "sub-04", "rho": 0.592}, {"branch": "visual", "pair": "A–C", "subject": "sub-05", "rho": 0.734}, {"branch": "visual", "pair": "A–C", "subject": "sub-06", "rho": 0.649}, {"branch": "visual", "pair": "A–C", "subject": "sub-07", "rho": 0.6705}, {"branch": "visual", "pair": "A–C", "subject": "sub-08", "rho": 0.6733}, {"branch": "visual", "pair": "A–C", "subject": "sub-09", "rho": 0.7178}, {"branch": "visual", "pair": "A–C", "subject": "sub-10", "rho": 0.5614}, {"branch": "visual", "pair": "A–C", "subject": "sub-11", "rho": 0.5329}, {"branch": "visual", "pair": "A–C", "subject": "sub-12", "rho": 0.3334}, {"branch": "visual", "pair": "A–C", "subject": "sub-13", "rho": 0.683}, {"branch": "visual", "pair": "A–C", "subject": "sub-14", "rho": 0.3534}, {"branch": "visual", "pair": "A–C", "subject": "sub-15", "rho": 0.4591}, {"branch": "visual", "pair": "A–C", "subject": "sub-17", "rho": 0.5699}, {"branch": "visual", "pair": "A–C", "subject": "sub-18", "rho": 0.5015}, {"branch": "visual", "pair": "A–C", "subject": "sub-19", "rho": 0.6872}, {"branch": "visual", "pair": "A–C", "subject": "sub-20", "rho": 0.6619}, {"branch": "visual", "pair": "A–C", "subject": "sub-22", "rho": 0.6651}, {"branch": "visual", "pair": "A–C", "subject": "sub-23", "rho": 0.602}, {"branch": "visual", "pair": "B–C", "subject": "sub-01", "rho": 0.8622}, {"branch": "visual", "pair": "B–C", "subject": "sub-02", "rho": 0.8922}, {"branch": "visual", "pair": "B–C", "subject": "sub-03", "rho": 0.866}, {"branch": "visual", "pair": "B–C", "subject": "sub-04", "rho": 0.8906}, {"branch": "visual", "pair": "B–C", "subject": "sub-05", "rho": 0.9209}, {"branch": "visual", "pair": "B–C", "subject": "sub-06", "rho": 0.8769}, {"branch": "visual", "pair": "B–C", "subject": "sub-07", "rho": 0.893}, {"branch": "visual", "pair": "B–C", "subject": "sub-08", "rho": 0.9171}, {"branch": "visual", "pair": "B–C", "subject": "sub-09", "rho": 0.9007}, {"branch": "visual", "pair": "B–C", "subject": "sub-10", "rho": 0.8963}, {"branch": "visual", "pair": "B–C", "subject": "sub-11", "rho": 0.9027}, {"branch": "visual", "pair": "B–C", "subject": "sub-12", "rho": 0.8292}, {"branch": "visual", "pair": "B–C", "subject": "sub-13", "rho": 0.9212}, {"branch": "visual", "pair": "B–C", "subject": "sub-14", "rho": 0.7518}, {"branch": "visual", "pair": "B–C", "subject": "sub-15", "rho": 0.7009}, {"branch": "visual", "pair": "B–C", "subject": "sub-17", "rho": 0.8896}, {"branch": "visual", "pair": "B–C", "subject": "sub-18", "rho": 0.8792}, {"branch": "visual", "pair": "B–C", "subject": "sub-19", "rho": 0.9247}, {"branch": "visual", "pair": "B–C", "subject": "sub-20", "rho": 0.8878}, {"branch": "visual", "pair": "B–C", "subject": "sub-22", "rho": 0.9042}, {"branch": "visual", "pair": "B–C", "subject": "sub-23", "rho": 0.8545}, {"branch": "movement", "pair": "A–B", "subject": "sub-01", "rho": 0.7333}, {"branch": "movement", "pair": "A–B", "subject": "sub-02", "rho": 0.7093}, {"branch": "movement", "pair": "A–B", "subject": "sub-03", "rho": 0.6361}, {"branch": "movement", "pair": "A–B", "subject": "sub-04", "rho": 0.5738}, {"branch": "movement", "pair": "A–B", "subject": "sub-05", "rho": 0.6096}, {"branch": "movement", "pair": "A–B", "subject": "sub-08", "rho": 0.5992}, {"branch": "movement", "pair": "A–B", "subject": "sub-09", "rho": 0.712}, {"branch": "movement", "pair": "A–B", "subject": "sub-10", "rho": 0.5595}, {"branch": "movement", "pair": "A–B", "subject": "sub-11", "rho": 0.4686}, {"branch": "movement", "pair": "A–B", "subject": "sub-12", "rho": 0.517}, {"branch": "movement", "pair": "A–B", "subject": "sub-13", "rho": 0.6534}, {"branch": "movement", "pair": "A–B", "subject": "sub-14", "rho": 0.4771}, {"branch": "movement", "pair": "A–B", "subject": "sub-15", "rho": 0.4804}, {"branch": "movement", "pair": "A–B", "subject": "sub-17", "rho": 0.6103}, {"branch": "movement", "pair": "A–B", "subject": "sub-18", "rho": 0.5141}, {"branch": "movement", "pair": "A–B", "subject": "sub-19", "rho": 0.623}, {"branch": "movement", "pair": "A–B", "subject": "sub-20", "rho": 0.6966}, {"branch": "movement", "pair": "A–B", "subject": "sub-22", "rho": 0.6547}, {"branch": "movement", "pair": "A–B", "subject": "sub-23", "rho": 0.6807}, {"branch": "movement", "pair": "A–C", "subject": "sub-01", "rho": 0.6738}, {"branch": "movement", "pair": "A–C", "subject": "sub-02", "rho": 0.6277}, {"branch": "movement", "pair": "A–C", "subject": "sub-03", "rho": 0.5832}, {"branch": "movement", "pair": "A–C", "subject": "sub-04", "rho": 0.5387}, {"branch": "movement", "pair": "A–C", "subject": "sub-05", "rho": 0.5497}, {"branch": "movement", "pair": "A–C", "subject": "sub-08", "rho": 0.5784}, {"branch": "movement", "pair": "A–C", "subject": "sub-09", "rho": 0.651}, {"branch": "movement", "pair": "A–C", "subject": "sub-10", "rho": 0.513}, {"branch": "movement", "pair": "A–C", "subject": "sub-11", "rho": 0.466}, {"branch": "movement", "pair": "A–C", "subject": "sub-12", "rho": 0.5025}, {"branch": "movement", "pair": "A–C", "subject": "sub-13", "rho": 0.6387}, {"branch": "movement", "pair": "A–C", "subject": "sub-14", "rho": 0.4171}, {"branch": "movement", "pair": "A–C", "subject": "sub-15", "rho": 0.4733}, {"branch": "movement", "pair": "A–C", "subject": "sub-17", "rho": 0.5761}, {"branch": "movement", "pair": "A–C", "subject": "sub-18", "rho": 0.5052}, {"branch": "movement", "pair": "A–C", "subject": "sub-19", "rho": 0.6129}, {"branch": "movement", "pair": "A–C", "subject": "sub-20", "rho": 0.6426}, {"branch": "movement", "pair": "A–C", "subject": "sub-22", "rho": 0.6341}, {"branch": "movement", "pair": "A–C", "subject": "sub-23", "rho": 0.6283}, {"branch": "movement", "pair": "B–C", "subject": "sub-01", "rho": 0.8979}, {"branch": "movement", "pair": "B–C", "subject": "sub-02", "rho": 0.8699}, {"branch": "movement", "pair": "B–C", "subject": "sub-03", "rho": 0.8456}, {"branch": "movement", "pair": "B–C", "subject": "sub-04", "rho": 0.8815}, {"branch": "movement", "pair": "B–C", "subject": "sub-05", "rho": 0.8993}, {"branch": "movement", "pair": "B–C", "subject": "sub-08", "rho": 0.9025}, {"branch": "movement", "pair": "B–C", "subject": "sub-09", "rho": 0.8926}, {"branch": "movement", "pair": "B–C", "subject": "sub-10", "rho": 0.882}, {"branch": "movement", "pair": "B–C", "subject": "sub-11", "rho": 0.8839}, {"branch": "movement", "pair": "B–C", "subject": "sub-12", "rho": 0.8492}, {"branch": "movement", "pair": "B–C", "subject": "sub-13", "rho": 0.9295}, {"branch": "movement", "pair": "B–C", "subject": "sub-14", "rho": 0.8302}, {"branch": "movement", "pair": "B–C", "subject": "sub-15", "rho": 0.6399}, {"branch": "movement", "pair": "B–C", "subject": "sub-17", "rho": 0.8574}, {"branch": "movement", "pair": "B–C", "subject": "sub-18", "rho": 0.9023}, {"branch": "movement", "pair": "B–C", "subject": "sub-19", "rho": 0.8801}, {"branch": "movement", "pair": "B–C", "subject": "sub-20", "rho": 0.9034}, {"branch": "movement", "pair": "B–C", "subject": "sub-22", "rho": 0.9034}, {"branch": "movement", "pair": "B–C", "subject": "sub-23", "rho": 0.8718}, {"branch": "context", "pair": "A–B", "subject": "sub-01", "rho": 0.5879}, {"branch": "context", "pair": "A–B", "subject": "sub-02", "rho": 0.7366}, {"branch": "context", "pair": "A–B", "subject": "sub-03", "rho": 0.5997}, {"branch": "context", "pair": "A–B", "subject": "sub-04", "rho": 0.5457}, {"branch": "context", "pair": "A–B", "subject": "sub-05", "rho": 0.6968}, {"branch": "context", "pair": "A–B", "subject": "sub-06", "rho": 0.5869}, {"branch": "context", "pair": "A–B", "subject": "sub-07", "rho": 0.6453}, {"branch": "context", "pair": "A–B", "subject": "sub-08", "rho": 0.5432}, {"branch": "context", "pair": "A–B", "subject": "sub-09", "rho": 0.6868}, {"branch": "context", "pair": "A–B", "subject": "sub-10", "rho": 0.4626}, {"branch": "context", "pair": "A–B", "subject": "sub-11", "rho": 0.6105}, {"branch": "context", "pair": "A–B", "subject": "sub-12", "rho": 0.5575}, {"branch": "context", "pair": "A–B", "subject": "sub-13", "rho": 0.6405}, {"branch": "context", "pair": "A–B", "subject": "sub-14", "rho": 0.3553}, {"branch": "context", "pair": "A–B", "subject": "sub-15", "rho": 0.6739}, {"branch": "context", "pair": "A–B", "subject": "sub-17", "rho": 0.5642}, {"branch": "context", "pair": "A–B", "subject": "sub-18", "rho": 0.5359}, {"branch": "context", "pair": "A–B", "subject": "sub-19", "rho": 0.5906}, {"branch": "context", "pair": "A–B", "subject": "sub-20", "rho": 0.5907}, {"branch": "context", "pair": "A–B", "subject": "sub-22", "rho": 0.5218}, {"branch": "context", "pair": "A–B", "subject": "sub-23", "rho": 0.5972}, {"branch": "context", "pair": "A–C", "subject": "sub-01", "rho": 0.5589}, {"branch": "context", "pair": "A–C", "subject": "sub-02", "rho": 0.684}, {"branch": "context", "pair": "A–C", "subject": "sub-03", "rho": 0.5679}, {"branch": "context", "pair": "A–C", "subject": "sub-04", "rho": 0.5213}, {"branch": "context", "pair": "A–C", "subject": "sub-05", "rho": 0.6442}, {"branch": "context", "pair": "A–C", "subject": "sub-06", "rho": 0.58}, {"branch": "context", "pair": "A–C", "subject": "sub-07", "rho": 0.6372}, {"branch": "context", "pair": "A–C", "subject": "sub-08", "rho": 0.5253}, {"branch": "context", "pair": "A–C", "subject": "sub-09", "rho": 0.6432}, {"branch": "context", "pair": "A–C", "subject": "sub-10", "rho": 0.4401}, {"branch": "context", "pair": "A–C", "subject": "sub-11", "rho": 0.5978}, {"branch": "context", "pair": "A–C", "subject": "sub-12", "rho": 0.4999}, {"branch": "context", "pair": "A–C", "subject": "sub-13", "rho": 0.655}, {"branch": "context", "pair": "A–C", "subject": "sub-14", "rho": 0.3992}, {"branch": "context", "pair": "A–C", "subject": "sub-15", "rho": 0.6077}, {"branch": "context", "pair": "A–C", "subject": "sub-17", "rho": 0.5651}, {"branch": "context", "pair": "A–C", "subject": "sub-18", "rho": 0.555}, {"branch": "context", "pair": "A–C", "subject": "sub-19", "rho": 0.5655}, {"branch": "context", "pair": "A–C", "subject": "sub-20", "rho": 0.5696}, {"branch": "context", "pair": "A–C", "subject": "sub-22", "rho": 0.4741}, {"branch": "context", "pair": "A–C", "subject": "sub-23", "rho": 0.5695}, {"branch": "context", "pair": "B–C", "subject": "sub-01", "rho": 0.9331}, {"branch": "context", "pair": "B–C", "subject": "sub-02", "rho": 0.8957}, {"branch": "context", "pair": "B–C", "subject": "sub-03", "rho": 0.8665}, {"branch": "context", "pair": "B–C", "subject": "sub-04", "rho": 0.8897}, {"branch": "context", "pair": "B–C", "subject": "sub-05", "rho": 0.9313}, {"branch": "context", "pair": "B–C", "subject": "sub-06", "rho": 0.9197}, {"branch": "context", "pair": "B–C", "subject": "sub-07", "rho": 0.9316}, {"branch": "context", "pair": "B–C", "subject": "sub-08", "rho": 0.932}, {"branch": "context", "pair": "B–C", "subject": "sub-09", "rho": 0.9179}, {"branch": "context", "pair": "B–C", "subject": "sub-10", "rho": 0.9248}, {"branch": "context", "pair": "B–C", "subject": "sub-11", "rho": 0.9366}, {"branch": "context", "pair": "B–C", "subject": "sub-12", "rho": 0.9167}, {"branch": "context", "pair": "B–C", "subject": "sub-13", "rho": 0.9667}, {"branch": "context", "pair": "B–C", "subject": "sub-14", "rho": 0.9168}, {"branch": "context", "pair": "B–C", "subject": "sub-15", "rho": 0.9166}, {"branch": "context", "pair": "B–C", "subject": "sub-17", "rho": 0.9014}, {"branch": "context", "pair": "B–C", "subject": "sub-18", "rho": 0.9146}, {"branch": "context", "pair": "B–C", "subject": "sub-19", "rho": 0.942}, {"branch": "context", "pair": "B–C", "subject": "sub-20", "rho": 0.93}, {"branch": "context", "pair": "B–C", "subject": "sub-22", "rho": 0.9135}, {"branch": "context", "pair": "B–C", "subject": "sub-23", "rho": 0.9081}], "summary": [{"branch": "visual", "pair": "A–B", "n": 21, "mean": 0.634, "min": 0.37, "max": 0.768, "group": 0.784}, {"branch": "visual", "pair": "A–C", "n": 21, "mean": 0.597, "min": 0.333, "max": 0.734, "group": 0.751}, {"branch": "visual", "pair": "B–C", "n": 21, "mean": 0.874, "min": 0.701, "max": 0.925, "group": 0.922}, {"branch": "movement", "pair": "A–B", "n": 19, "mean": 0.606, "min": 0.469, "max": 0.733, "group": 0.669}, {"branch": "movement", "pair": "A–C", "n": 19, "mean": 0.569, "min": 0.417, "max": 0.674, "group": 0.65}, {"branch": "movement", "pair": "B–C", "n": 19, "mean": 0.87, "min": 0.64, "max": 0.929, "group": 0.862}, {"branch": "context", "pair": "A–B", "n": 21, "mean": 0.587, "min": 0.355, "max": 0.737, "group": 0.671}, {"branch": "context", "pair": "A–C", "n": 21, "mean": 0.565, "min": 0.399, "max": 0.684, "group": 0.637}, {"branch": "context", "pair": "B–C", "n": 21, "mean": 0.919, "min": 0.866, "max": 0.967, "group": 0.929}], "tfce": [{"arm": "A", "branch": "movement direction", "percent": 44.387, "voxels": 70200, "peakT": 7.18}, {"arm": "B", "branch": "movement direction", "percent": 46.299, "voxels": 73224, "peakT": 7.6}, {"arm": "C", "branch": "movement direction", "percent": 43.881, "voxels": 69400, "peakT": 7.69}, {"arm": "A", "branch": "preparation rotation/mirror", "percent": 0.746, "voxels": 1180, "peakT": 10.39}, {"arm": "B", "branch": "preparation rotation/mirror", "percent": 0.082, "voxels": 130, "peakT": 6.35}, {"arm": "C", "branch": "preparation rotation/mirror", "percent": 0.019, "voxels": 30, "peakT": 7.13}, {"arm": "A", "branch": "task context −90/+90", "percent": 25.364, "voxels": 40114, "peakT": 5.61}, {"arm": "B", "branch": "task context −90/+90", "percent": 0.594, "voxels": 939, "peakT": 6.52}, {"arm": "C", "branch": "task context −90/+90", "percent": 0.273, "voxels": 431, "peakT": 6.42}, {"arm": "A", "branch": "visual direction", "percent": 7.726, "voxels": 12219, "peakT": 19.47}, {"arm": "B", "branch": "visual direction", "percent": 5.907, "voxels": 9342, "peakT": 15.65}, {"arm": "C", "branch": "visual direction", "percent": 6.491, "voxels": 10266, "peakT": 14.47}], "branchOrder": ["visual", "movement", "context"], "branchLabel": {"visual": "Visual direction", "movement": "Movement direction", "context": "Task context −90/+90"}};
+const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const SVGNS = "http://www.w3.org/2000/svg";
+const el = (tag, attrs = {}, text) => {
+  const n = document.createElementNS(SVGNS, tag);
+  for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+  if (text != null) n.textContent = text;
+  return n;
+};
+
+/* ---------------------------------------------------------------- tooltip */
+const tip = document.getElementById("tip");
+function showTip(evt, html) {
+  tip.innerHTML = html;
+  tip.style.opacity = 1;
+  const pad = 14, r = tip.getBoundingClientRect();
+  let x = evt.clientX + pad, y = evt.clientY + pad;
+  if (x + r.width > innerWidth - 8) x = evt.clientX - r.width - pad;
+  if (y + r.height > innerHeight - 8) y = evt.clientY - r.height - pad;
+  tip.style.left = x + "px";
+  tip.style.top = y + "px";
+}
+const hideTip = () => { tip.style.opacity = 0; };
+function hoverable(node, html) {
+  node.addEventListener("mousemove", (e) => showTip(e, html));
+  node.addEventListener("mouseleave", hideTip);
+  node.setAttribute("tabindex", "0");
+  node.addEventListener("focus", (e) => {
+    const b = node.getBoundingClientRect();
+    showTip({ clientX: b.left + b.width / 2, clientY: b.top + b.height / 2 }, html);
+  });
+  node.addEventListener("blur", hideTip);
+}
+
+/* ---------------------------------------------------------------- headline tiles */
+function fillTiles() {
+  const rho = DATA.matrix.rho;
+  const col = (i) => rho.map((r) => r[i]);
+  const fmt = (v) => v.toFixed(3).replace(/^0/, "");
+  const bc = col(2), ab = col(0);
+  document.getElementById("tileBC").textContent =
+    fmt(Math.min(...bc)) + "–" + fmt(Math.max(...bc));
+  document.getElementById("tileAB").textContent =
+    fmt(Math.min(...ab)) + "–" + fmt(Math.max(...ab));
+  const ctx = DATA.tfce.filter((d) => /context/i.test(d.branch) && /90/.test(d.branch));
+  const a = ctx.find((d) => d.arm === "A"), b = ctx.find((d) => d.arm === "B");
+  document.getElementById("tileExtent").textContent =
+    a && b ? `${a.percent.toFixed(1)}% vs ${b.percent.toFixed(2)}%` : "—";
+}
+
+/* ---------------------------------------------------------------- matrix */
+function drawMatrix() {
+  const svg = document.getElementById("matrix");
+  svg.textContent = "";
+  const { branches, pairs, rho, cohort } = DATA.matrix;
+  const left = 210, top = 34, cw = 116, ch = 30, gap = 2;
+  const w = left + pairs.length * cw + 16, h = top + branches.length * ch + 14;
+  svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+  svg.setAttribute("style", `min-width:${Math.min(w, 760)}px`);
+
+  const steps = [css("--seq-100"), css("--seq-250"), css("--seq-400"), css("--seq-500"), css("--seq-600"), css("--seq-700")];
+  const lo = 0.6, hi = 1.0;                     // one hue, light to dark
+  const colour = (v) => steps[Math.max(0, Math.min(steps.length - 1,
+    Math.floor((v - lo) / (hi - lo) * steps.length)))];
+
+  pairs.forEach((p, j) => {
+    const t = el("text", { x: left + j * cw + cw / 2, y: top - 12, "text-anchor": "middle",
+                           class: "axis-title", "font-weight": "650" }, p);
+    svg.appendChild(t);
+  });
+  branches.forEach((b, i) => {
+    svg.appendChild(el("text", { x: left - 10, y: top + i * ch + ch / 2 + 4,
+                                 "text-anchor": "end", class: "axis" , fill: css("--text-secondary")}, b));
+    pairs.forEach((p, j) => {
+      const v = rho[i][j];
+      const g = el("g");
+      g.appendChild(el("rect", {
+        x: left + j * cw + gap / 2, y: top + i * ch + gap / 2,
+        width: cw - gap, height: ch - gap, rx: 4, fill: colour(v),
+      }));
+      g.appendChild(el("text", {
+        x: left + j * cw + cw / 2, y: top + i * ch + ch / 2 + 4, "text-anchor": "middle",
+        class: "cell-label", fill: v > 0.85 ? "#ffffff" : css("--text-primary"),
+      }, v.toFixed(3).replace(/^0/, "")));
+      hoverable(g, `<b>${p}</b> &middot; ${b}<br>rho ${v.toFixed(3)} &middot; n = ${cohort[i]}`);
+      svg.appendChild(g);
+    });
+  });
+
+  const rows = branches.map((b, i) =>
+    `<tr><td>${b}</td>` + rho[i].map((v) => `<td>${v.toFixed(3)}</td>`).join("") + `<td>${cohort[i]}</td></tr>`);
+  document.getElementById("matrixTable").innerHTML =
+    `<table><tr><th>Branch</th>${pairs.map((p) => `<th>${p}</th>`).join("")}<th>n</th></tr>${rows.join("")}</table>`;
+}
+
+/* ---------------------------------------------------------------- per-participant strip */
+function drawStrip() {
+  const svg = document.getElementById("strip");
+  svg.textContent = "";
+  const branch = document.getElementById("branchPick").value;
+  const pairs = ["A–B", "A–C", "B–C"];
+  const colours = [css("--series-1"), css("--series-2"), css("--series-3")];
+  const rows = DATA.perSubject.filter((d) => d.branch === branch);
+  const sums = DATA.summary.filter((d) => d.branch === branch);
+
+  const left = 70, right = 24, top = 18, rowH = 76;
+  const w = 820, h = top + pairs.length * rowH + 40;
+  svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+  const x0 = left, x1 = w - right;
+  const lo = Math.min(0.3, ...rows.map((d) => d.rho)) - 0.03;
+  const hi = Math.max(...rows.map((d) => d.rho), ...sums.map((d) => d.group)) + 0.03;
+  const X = (v) => x0 + (v - lo) / (hi - lo) * (x1 - x0);
+
+  const gridG = el("g", { class: "grid" });
+  for (let v = Math.ceil(lo * 10) / 10; v <= hi; v += 0.1) {
+    gridG.appendChild(el("line", { x1: X(v), x2: X(v), y1: top, y2: top + pairs.length * rowH }));
+    gridG.appendChild(el("text", { x: X(v), y: h - 16, "text-anchor": "middle", class: "axis",
+                                   fill: css("--text-muted") }, v.toFixed(1).replace(/^0/, "")));
+  }
+  svg.appendChild(gridG);
+  svg.appendChild(el("text", { x: (x0 + x1) / 2, y: h - 2, "text-anchor": "middle",
+                               class: "axis-title" }, "Spearman rho"));
+
+  pairs.forEach((p, i) => {
+    const y = top + i * rowH + rowH / 2;
+    const s = sums.find((d) => d.pair === p);
+    svg.appendChild(el("text", { x: x0 - 12, y: y + 4, "text-anchor": "end",
+                                 class: "axis-title", "font-weight": "650" }, p));
+    const pts = rows.filter((d) => d.pair === p);
+    pts.forEach((d, k) => {
+      const jitter = ((k % 7) - 3) * 4;
+      const c = el("circle", { cx: X(d.rho), cy: y + jitter, r: 5, fill: colours[i],
+                               "fill-opacity": .72, stroke: css("--surface-1"), "stroke-width": 2 });
+      hoverable(c, `<b>${d.subject}</b> &middot; ${p}<br>rho ${d.rho.toFixed(3)}`);
+      svg.appendChild(c);
+    });
+    if (s) {
+      const g = el("g");
+      g.appendChild(el("line", { x1: X(s.group), x2: X(s.group), y1: y - 30, y2: y + 30,
+                                 stroke: css("--text-primary"), "stroke-width": 2 }));
+      g.appendChild(el("text", { x: X(s.group), y: y - 36, "text-anchor": "middle",
+                                 class: "mark-label", fill: css("--text-primary") },
+                      "group " + s.group.toFixed(3).replace(/^0/, "")));
+      g.appendChild(el("text", { x: X(s.mean), y: y + 46, "text-anchor": "middle",
+                                 class: "mark-label" },
+                      "mean " + s.mean.toFixed(3).replace(/^0/, "")));
+      hoverable(g, `<b>${p}</b><br>group map ${s.group.toFixed(3)}<br>within participants ${s.mean.toFixed(3)} (n = ${s.n})`);
+      svg.appendChild(g);
+    }
+  });
+
+  document.getElementById("summaryTable").innerHTML =
+    `<table><tr><th>Branch</th><th>Pair</th><th>n</th><th>Within-participant mean</th><th>Range</th><th>Group map</th></tr>` +
+    DATA.summary.map((d) =>
+      `<tr><td>${DATA.branchLabel[d.branch] || d.branch}</td><td>${d.pair}</td><td>${d.n}</td>` +
+      `<td>${d.mean.toFixed(3)}</td><td>${d.min.toFixed(3)} to ${d.max.toFixed(3)}</td>` +
+      `<td>${d.group.toFixed(3)}</td></tr>`).join("") + `</table>`;
+}
+
+/* ---------------------------------------------------------------- TFCE extent */
+function drawExtent() {
+  const svg = document.getElementById("extent");
+  svg.textContent = "";
+  const arms = ["A", "B", "C"];
+  const colours = [css("--series-1"), css("--series-2"), css("--series-3")];
+  const branches = [...new Set(DATA.tfce.map((d) => d.branch))].sort();
+  const left = 62, right = 16, top = 26, bottom = 62;
+  const w = 820, h = 360;
+  svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+  const x0 = left, x1 = w - right, y0 = top, y1 = h - bottom;
+  const vals = DATA.tfce.map((d) => d.percent);
+  const lo = Math.log10(Math.min(...vals) / 3), hi = Math.log10(Math.max(...vals) * 3);
+  const Y = (v) => y1 - (Math.log10(v) - lo) / (hi - lo) * (y1 - y0);
+
+  const gridG = el("g", { class: "grid" });
+  for (let e = Math.ceil(lo); e <= hi; e++) {
+    const v = Math.pow(10, e);
+    gridG.appendChild(el("line", { x1: x0, x2: x1, y1: Y(v), y2: Y(v) }));
+    gridG.appendChild(el("text", { x: x0 - 8, y: Y(v) + 4, "text-anchor": "end", class: "axis",
+                                   fill: css("--text-muted") }, v >= 1 ? String(v) : String(v)));
+  }
+  svg.appendChild(gridG);
+  svg.appendChild(el("text", { x: 14, y: (y0 + y1) / 2, class: "axis-title", "text-anchor": "middle",
+                               transform: `rotate(-90 14 ${(y0 + y1) / 2})` },
+                   "% of mask, corrected p < .05"));
+
+  const band = (x1 - x0) / branches.length;
+  const bw = Math.min(46, band / 4);
+  branches.forEach((b, i) => {
+    const cx = x0 + band * (i + 0.5);
+    b.split(" ").forEach((word, k, all) =>
+      svg.appendChild(el("text", { x: cx, y: y1 + 22 + k * 15, "text-anchor": "middle",
+                                   class: "axis", fill: css("--text-secondary") }, word)));
+    arms.forEach((arm, j) => {
+      const d = DATA.tfce.find((r) => r.arm === arm && r.branch === b);
+      if (!d) return;
+      const x = cx + (j - 1) * (bw + 4) - bw / 2;
+      const g = el("g");
+      g.appendChild(el("rect", { x, y: Y(d.percent), width: bw, height: y1 - Y(d.percent),
+                                 rx: 4, fill: colours[j] }));
+      g.appendChild(el("text", { x: x + bw / 2, y: Y(d.percent) - 6, "text-anchor": "middle",
+                                 class: "mark-label" },
+                      d.percent >= 1 ? d.percent.toFixed(1) : d.percent.toFixed(2)));
+      hoverable(g, `<b>Pipeline ${arm}</b> &middot; ${b}<br>${d.percent}% of the mask` +
+                   `<br>${d.voxels.toLocaleString()} voxels &middot; peak t ${d.peakT}`);
+      svg.appendChild(g);
+    });
+  });
+
+  document.getElementById("extentTable").innerHTML =
+    `<table><tr><th>Branch</th><th>Pipeline</th><th>% of mask</th><th>Voxels</th><th>Peak t</th></tr>` +
+    DATA.tfce.map((d) =>
+      `<tr><td>${d.branch}</td><td>${d.arm}</td><td>${d.percent}</td>` +
+      `<td>${d.voxels.toLocaleString()}</td><td>${d.peakT}</td></tr>`).join("") + `</table>`;
+}
+
+/* ---------------------------------------------------------------- legend + controls */
+function buildLegend(after, items) {
+  const div = document.createElement("div");
+  div.className = "legend";
+  div.innerHTML = items.map(([label, colour]) =>
+    `<span><span class="swatch" style="background:${colour}"></span>${label}</span>`).join("");
+  after.parentNode.insertBefore(div, after);
+}
+
+function init() {
+  fillTiles();
+  const pick = document.getElementById("branchPick");
+  DATA.branchOrder.forEach((b) => {
+    const o = document.createElement("option");
+    o.value = b;
+    o.textContent = DATA.branchLabel[b] || b;
+    pick.appendChild(o);
+  });
+  pick.value = DATA.branchOrder[0];
+  pick.addEventListener("change", drawStrip);
+
+  drawMatrix();
+  drawStrip();
+  drawExtent();
+
+  buildLegend(document.getElementById("strip").closest("figure"),
+              [["A–B", css("--series-1")], ["A–C", css("--series-2")], ["B–C", css("--series-3")]]);
+  buildLegend(document.getElementById("extent").closest("figure"),
+              [["Pipeline A", css("--series-1")], ["Pipeline B", css("--series-2")], ["Pipeline C", css("--series-3")]]);
+}
+
+const btn = document.getElementById("themeBtn");
+function applyTheme(t) {
+  document.documentElement.dataset.theme = t;
+  btn.textContent = t === "dark" ? "Light" : "Dark";
+  drawMatrix(); drawStrip(); drawExtent();
+}
+btn.addEventListener("click", () => {
+  const dark = document.documentElement.dataset.theme === "dark" ||
+    (!document.documentElement.dataset.theme && matchMedia("(prefers-color-scheme: dark)").matches);
+  applyTheme(dark ? "light" : "dark");
+});
+btn.textContent = matchMedia("(prefers-color-scheme: dark)").matches ? "Light" : "Dark";
+
+init();
+addEventListener("resize", () => { drawStrip(); });
+</script>
+</body>
+</html>
