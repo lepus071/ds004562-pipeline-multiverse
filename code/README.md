@@ -64,6 +64,8 @@ relative paths (`from_server/`, `../ds004562-pipeline-multiverse`) describe that
 | `build_pages.py` + `pages_template.html` | Builds `docs/index.html`. Every number on that page is read from the published tables at build time, so the page cannot drift from the data. |
 | `make_figures.py` | Draws the agreement matrices and the threshold chart used on the poster. |
 | `figure_blocks.py` | Splits the rendered brain figures into their t-map and accuracy blocks by finding the blank gutter between them, rather than cutting at a fixed fraction. |
+| `fetch_thumbnails.py` | Copies the glass-brain renderings NeuroVault generated into `docs/maps/`, so the results page shows the maps without depending on another site. |
+| `test_map_thumbnails.py` | Checks every panel the page can show has an image behind it that links back to the archived map. |
 | `neurovault_upload.py` | Uploads the group maps to [NeuroVault](https://neurovault.org/collections/24567/), one image per pipeline, branch and map type. |
 | `test_crop_blocks.py` | Checks the block split lands in the gutter and loses no rows of brain. |
 | `test_neurovault_upload.py` | Checks each map is described correctly, and that the partner laboratory's pipeline is not uploaded unless explicitly asked for. |

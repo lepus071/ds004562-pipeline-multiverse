@@ -41,6 +41,15 @@ def read_tsv(path):
         return list(csv.DictReader(f, delimiter="\t"))
 
 
+MAP_BRANCHES = [
+    ("visual_direction", "Visual direction"),
+    ("movement_direction", "Movement direction"),
+    ("task_context", "Task context −90/+90"),
+    ("preparation_rotmirror", "Preparation, rotation vs mirror"),
+]
+MAP_KINDS = [("t", "Group t"), ("corrp", "TFCE-corrected 1−p")]
+
+
 def build_data():
     per_subject = read_tsv(TABLES / "persubject_rho_abc.tsv")
     summary = read_tsv(TABLES / "persubject_summary_abc.tsv")
@@ -74,6 +83,11 @@ def build_data():
         ],
         "branchOrder": BRANCH_ORDER,
         "branchLabel": BRANCH_LABEL,
+        "maps": json.loads((DOCS / "maps/index.json").read_text(encoding="utf8"))
+        if (DOCS / "maps/index.json").exists() else {},
+        "mapBranches": MAP_BRANCHES,
+        "mapKinds": MAP_KINDS,
+        "collection": "https://neurovault.org/collections/24567/",
     }
 
 

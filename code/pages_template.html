@@ -116,6 +116,16 @@
   th:first-child, td:first-child { text-align: left; }
   th { color: var(--text-muted); font-weight: 600; }
 
+  .maps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 14px; }
+  .maps figure { margin: 0; }
+  .maps a { display: block; background: var(--surface-1); border: 1px solid var(--rule);
+            border-radius: 10px; padding: 8px; text-decoration: none; }
+  .maps a:hover { border-color: var(--accent); }
+  .maps img { width: 100%; height: auto; display: block; border-radius: 5px; background: #fff; }
+  .maps .name { color: var(--text-primary); font-size: 14px; font-weight: 650; margin-top: 8px; }
+  .maps .sub { color: var(--text-muted); font-size: 12.5px; }
+  @media (max-width: 620px) { .maps { grid-template-columns: 1fr; } }
+
   .note { background: var(--surface-1); border: 1px solid var(--rule); border-left: 3px solid var(--series-2);
           border-radius: 8px; padding: 14px 16px; margin-top: 22px; }
   .note p { margin: 0; }
@@ -155,6 +165,21 @@
   <p>Agreement is Spearman rho between two group accuracy maps, voxel by voxel, inside one frozen
   mask of 158,156 voxels, unthresholded. The three pipelines implement the same decoding design;
   they differ only in the software that produced the maps.</p>
+</section>
+
+<section>
+  <h2>The maps themselves</h2>
+  <p>Each panel is a glass brain: the whole volume projected onto three views, so everything
+  the map contains is visible at once. Pick a branch and a map to compare the three pipelines
+  side by side. Tap any panel for the full volume and an interactive viewer.</p>
+  <div class="controls">
+    <label for="mapBranch">Branch</label>
+    <select id="mapBranch"></select>
+    <label for="mapKind">Map</label>
+    <select id="mapKind"></select>
+  </div>
+  <div class="maps" id="mapGrid"></div>
+  <figcaption id="mapCaption" style="color:var(--text-muted);font-size:14px;margin-top:10px"></figcaption>
 </section>
 
 <section>
@@ -471,6 +496,37 @@ function drawExtent() {
       `<td>${d.voxels.toLocaleString()}</td><td>${d.peakT}</td></tr>`).join("") + `</table>`;
 }
 
+/* ---------------------------------------------------------------- the maps */
+function drawMaps() {
+  const grid = document.getElementById("mapGrid");
+  const branch = document.getElementById("mapBranch").value;
+  const kind = document.getElementById("mapKind").value;
+  const kindLabel = (DATA.mapKinds.find(([k]) => k === kind) || [, kind])[1];
+  grid.innerHTML = "";
+  let shown = 0;
+  for (const arm of ["A", "B", "C"]) {
+    const entry = DATA.maps[`${arm}|${branch}|${kind}`];
+    const fig = document.createElement("figure");
+    if (!entry) {
+      fig.innerHTML = `<a style="cursor:default"><div class="name">Pipeline ${arm}</div>` +
+                      `<div class="sub">not available for this branch</div></a>`;
+    } else {
+      shown++;
+      fig.innerHTML =
+        `<a href="${entry.url}" target="_blank" rel="noopener">` +
+        `<img src="maps/${entry.file}" alt="Glass brain, pipeline ${arm}, ${branch}, ${kindLabel}" loading="lazy">` +
+        `<div class="name">Pipeline ${arm}</div>` +
+        `<div class="sub">${kindLabel} &middot; open on NeuroVault</div></a>`;
+    }
+    grid.appendChild(fig);
+  }
+  const label = (DATA.mapBranches.find(([b]) => b === branch) || [, branch])[1];
+  document.getElementById("mapCaption").innerHTML =
+    `${label} &mdash; ${kindLabel}. ${shown} of 3 pipelines shown. ` +
+    `All maps are archived in <a href="${DATA.collection}" target="_blank" rel="noopener">one NeuroVault collection</a>, ` +
+    `unthresholded and in full resolution.`;
+}
+
 /* ---------------------------------------------------------------- legend + controls */
 function buildLegend(after, items) {
   const div = document.createElement("div");
@@ -492,6 +548,20 @@ function init() {
   pick.value = DATA.branchOrder[0];
   pick.addEventListener("change", drawStrip);
 
+  const mb = document.getElementById("mapBranch");
+  DATA.mapBranches.forEach(([slug, label]) => {
+    const o = document.createElement("option");
+    o.value = slug; o.textContent = label; mb.appendChild(o);
+  });
+  const mk = document.getElementById("mapKind");
+  DATA.mapKinds.forEach(([k, label]) => {
+    const o = document.createElement("option");
+    o.value = k; o.textContent = label; mk.appendChild(o);
+  });
+  mb.addEventListener("change", drawMaps);
+  mk.addEventListener("change", drawMaps);
+
+  drawMaps();
   drawMatrix();
   drawStrip();
   drawExtent();
