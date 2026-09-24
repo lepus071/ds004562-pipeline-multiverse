@@ -85,10 +85,14 @@ scheme and a different label construction as well as different tools. Their maps
 agreement numbers that involve them are **not included here**, and will be added only if they
 agree to publication. The poster reports them with their permission.
 
-## Citing
+## Citing and licence
 
-If you use these tables, please cite the original dataset and paper above. This re-analysis is
-not a publication; treat it as workshop material.
+If you use these tables or figures, please cite the original dataset and paper above, and this
+repository. `CITATION.cff` holds the machine-readable form, and GitHub turns it into the
+"Cite this repository" button.
+
+Everything here is released under [CC BY 4.0](LICENSE): use it, change it, build on it, and say
+where it came from. The re-analysis is workshop material, not a publication.
 
 ## Contact
 

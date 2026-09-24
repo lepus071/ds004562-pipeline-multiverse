@@ -1,0 +1,48 @@
+cff-version: 1.2.0
+title: >-
+  Decoding the brain, or decoding the pipeline? Agreement between analysis
+  pipelines on OpenNeuro ds004562
+message: >-
+  If you use these tables or figures, please cite this repository and the
+  original study they re-analyse.
+type: dataset
+authors:
+  - given-names: Ching-Yi
+    family-names: Li
+    affiliation: Institute of Cognitive Neuroscience, National Central University
+    email: lepus071@gmail.com
+  - given-names: Erik Chih-hung
+    family-names: Chang
+    affiliation: Institute of Cognitive Neuroscience, National Central University
+    email: audachang@g.ncu.edu.tw
+repository-code: https://github.com/lepus071/ds004562-pipeline-multiverse
+url: https://lepus071.github.io/ds004562-pipeline-multiverse/
+abstract: >-
+  Per-participant and group agreement between four analysis pipelines applied to
+  one fMRI decoding dataset, with TFCE-corrected significant extent. The maps for
+  pipelines A, B and C are archived at neurovault.org/collections/24567.
+keywords:
+  - fMRI
+  - multivariate pattern analysis
+  - multiverse analysis
+  - reproducibility
+  - OpenNeuro
+license: CC-BY-4.0
+references:
+  - type: article
+    title: >-
+      Neural representations for multi-context visuomotor adaptation and the
+      impact of common representation on multi-task performance
+    authors:
+      - family-names: Song
+        given-names: Youngjo
+      - family-names: Shin
+        given-names: Wooree
+      - family-names: Kim
+        given-names: Pyeongsoo
+      - family-names: Jeong
+        given-names: Jaeseung
+    journal: Frontiers in Human Neuroscience
+    volume: 17
+    year: 2023
+    doi: 10.3389/fnhum.2023.1221944
