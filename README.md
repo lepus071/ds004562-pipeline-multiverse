@@ -6,6 +6,7 @@ We re-analysed one open fMRI dataset through several independent pipelines and a
 conclusions move when the pipeline moves.
 
 **[Read the results as an interactive page &rarr;](https://lepus071.github.io/ds004562-pipeline-multiverse/)**
+&nbsp;&nbsp;&middot;&nbsp;&nbsp;**[Browse the brain maps on NeuroVault &rarr;](https://neurovault.org/collections/24567/)**
 
 This repository holds the tables behind that page and behind the poster.
 
