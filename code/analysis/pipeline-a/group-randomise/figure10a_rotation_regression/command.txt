@@ -1,0 +1,1 @@
+randomise -i <RUN_DIR>/input_4d.nii.gz -o <RUN_DIR>/randomise -d <RUN_DIR>/design.mat -t <RUN_DIR>/design.con -m <RUN_DIR>/mask.nii.gz -n 5000 -T --tfce_H=2 --tfce_E=0.5 --tfce_C=6 --uncorrp -R -P -N --seed=20260903

@@ -77,10 +77,11 @@ direction, by contrast, reproduces cleanly: 7.7 %, 5.9 % and 6.5 %.
 | `tables/tfce_extent_abc.tsv` | significant voxel count, percentage of mask, and peak per pipeline and branch |
 | `figures/agreement_matrix_abc.png` | the eleven-branch agreement matrix |
 | `figures/tfce_extent_abc.png` | significant extent per branch, log scale |
-| `code/` | the scripts that produced the tables, figures and the results page — see `code/README.md` |
+| `code/analysis/` | the three pipelines as they ran: preprocessing, first-level models, searchlight decoding, and the exact `randomise` commands |
+| `code/` | the scripts that turn the finished maps into these tables, figures and the results page |
 
-The decoding itself ran on a laboratory server against the raw dataset and is not in this
-repository; `code/` starts from the finished maps.
+`code/README.md` lists the software versions as executed, and is honest about what was not
+preserved.
 
 ## The fourth pipeline
 
